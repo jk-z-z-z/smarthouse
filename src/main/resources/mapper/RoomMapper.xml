@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.smarthouse.mapper.RoomMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.smarthouse.model.entity.Room">
+            <id property="id" column="id" />
+            <result property="roomName" column="room_name" />
+            <result property="houseId" column="house_id" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,room_name,house_id
+    </sql>
+</mapper>
