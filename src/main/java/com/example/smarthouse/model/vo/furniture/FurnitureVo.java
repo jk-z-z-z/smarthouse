@@ -1,8 +1,8 @@
 package com.example.smarthouse.model.vo.furniture;
 
-import cn.hutool.core.bean.BeanUtil;
-import com.example.smarthouse.model.entity.Furniture;
 import lombok.Data;
+
+import java.io.Serial;
 import java.io.Serializable;
 
 @Data
@@ -47,23 +47,6 @@ public class FurnitureVo implements Serializable {
      */
     private String fileName;
 
+    @Serial
     private static final long serialVersionUID = 1L;
-
-    public static Furniture voToObj(FurnitureVo furnitureVo) {
-        if (furnitureVo == null) {
-            return null;
-        }
-        Furniture furniture = new Furniture();
-        BeanUtil.copyProperties(furnitureVo, furniture);
-        return furniture;
-    }
-
-    public static FurnitureVo objToVo(Furniture furniture) {
-        if (furniture == null) {
-            return null;
-        }
-        FurnitureVo furnitureVo = new FurnitureVo();
-        BeanUtil.copyProperties(furniture, furnitureVo);
-        return furnitureVo;
-    }
 }

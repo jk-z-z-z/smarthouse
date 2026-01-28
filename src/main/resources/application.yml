@@ -3,6 +3,7 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
+      location: ./temp
   application:
     name: smart-home
   profiles:
@@ -12,4 +13,4 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: root
     password: 123456
-    url: jdbc:mysql://localhost:3306/smart-home?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=UTC
+    url: jdbc:mysql://localhost:3306/smart_house?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=UTC

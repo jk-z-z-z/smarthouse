@@ -29,4 +29,20 @@ public interface HouseService extends IService<House> {
      * @return
      */
     boolean deleteHouse(Long houseId);
+
+    /**
+     * 根据用户 id 获取房子列表
+     *
+     * @param userId
+     * @return
+     */
+    java.util.List<House> listHouseByUserId(long userId);
+
+    /**
+     * 获取房子详情（包含房间和家具）
+     *
+     * @param houseId
+     * @return
+     */
+    com.example.smarthouse.model.vo.house.HouseVo getHouseDetail(long houseId);
 }

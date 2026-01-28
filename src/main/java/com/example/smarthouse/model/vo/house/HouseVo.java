@@ -1,9 +1,11 @@
 package com.example.smarthouse.model.vo.house;
 
-import cn.hutool.core.bean.BeanUtil;
-import com.example.smarthouse.model.entity.House;
+import com.example.smarthouse.model.vo.room.RoomVo;
 import lombok.Data;
+
+import java.io.Serial;
 import java.io.Serializable;
+import java.util.List;
 
 @Data
 public class HouseVo implements Serializable {
@@ -17,35 +19,11 @@ public class HouseVo implements Serializable {
      */
     private String houseName;
 
+    /**
+     * 房间列表
+     */
+    private List<RoomVo> roomList;
+
+    @Serial
     private static final long serialVersionUID = 1L;
-
-    /**
-     * 包装类转对象
-     *
-     * @param houseVo
-     * @return
-     */
-    public static House voToObj(HouseVo houseVo) {
-        if (houseVo == null) {
-            return null;
-        }
-        House house = new House();
-        BeanUtil.copyProperties(houseVo, house);
-        return house;
-    }
-
-    /**
-     * 对象转包装类
-     *
-     * @param house
-     * @return
-     */
-    public static HouseVo objToVo(House house) {
-        if (house == null) {
-            return null;
-        }
-        HouseVo houseVo = new HouseVo();
-        BeanUtil.copyProperties(house, houseVo);
-        return houseVo;
-    }
 }

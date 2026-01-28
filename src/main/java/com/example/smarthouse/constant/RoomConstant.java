@@ -1,5 +1,5 @@
 package com.example.smarthouse.constant;
 
-public class RoomConstant {
+public interface RoomConstant {
 
 }
