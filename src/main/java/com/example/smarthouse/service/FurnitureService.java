@@ -2,6 +2,8 @@ package com.example.smarthouse.service;
 
 import com.example.smarthouse.model.entity.Furniture;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.example.smarthouse.model.dto.furniture.FurnitureAddRequest;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
 * @author zzz
@@ -10,4 +12,12 @@ import com.baomidou.mybatisplus.extension.service.IService;
 */
 public interface FurnitureService extends IService<Furniture> {
 
+    /**
+     * 添加家具（包含图片上传）
+     *
+     * @param furnitureAddRequest
+     * @param file
+     * @return
+     */
+    long addFurniture(FurnitureAddRequest furnitureAddRequest, MultipartFile file);
 }

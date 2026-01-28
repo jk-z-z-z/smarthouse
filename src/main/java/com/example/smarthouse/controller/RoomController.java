@@ -1,9 +1,6 @@
 package com.example.smarthouse.controller;
 
 import cn.hutool.core.bean.BeanUtil;
-import cn.hutool.core.util.StrUtil;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.smarthouse.common.BaseResponse;
 import com.example.smarthouse.common.DeleteRequest;
 import com.example.smarthouse.common.ResultUtils;
@@ -11,7 +8,6 @@ import com.example.smarthouse.exception.BusinessException;
 import com.example.smarthouse.exception.ErrorCode;
 import com.example.smarthouse.exception.ThrowUtils;
 import com.example.smarthouse.model.dto.room.RoomAddRequest;
-import com.example.smarthouse.model.dto.room.RoomQueryRequest;
 import com.example.smarthouse.model.dto.room.RoomUpdateRequest;
 import com.example.smarthouse.model.entity.Room;
 import com.example.smarthouse.model.vo.room.RoomVo;
@@ -19,8 +15,6 @@ import com.example.smarthouse.service.RoomService;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 房间接口
@@ -35,8 +29,6 @@ public class RoomController {
     /**
      * 创建房间
      *
-     * @param roomAddRequest
-     * @return
      */
     @PostMapping("/add")
     public BaseResponse<Long> addRoom(@RequestBody RoomAddRequest roomAddRequest) {
@@ -53,8 +45,6 @@ public class RoomController {
     /**
      * 删除房间
      *
-     * @param deleteRequest
-     * @return
      */
     @PostMapping("/delete")
     public BaseResponse<Boolean> deleteRoom(@RequestBody DeleteRequest deleteRequest) {
@@ -68,8 +58,6 @@ public class RoomController {
     /**
      * 更新房间
      *
-     * @param roomUpdateRequest
-     * @return
      */
     @PostMapping("/update")
     public BaseResponse<Boolean> updateRoom(@RequestBody RoomUpdateRequest roomUpdateRequest) {
@@ -86,8 +74,6 @@ public class RoomController {
     /**
      * 根据 id 获取房间
      *
-     * @param id
-     * @return
      */
     @GetMapping("/get")
     public BaseResponse<RoomVo> getRoomById(long id) {
@@ -96,6 +82,6 @@ public class RoomController {
         }
         Room room = roomService.getById(id);
         ThrowUtils.throwIf(room == null, ErrorCode.NOT_FOUND_ERROR);
-        return ResultUtils.success(RoomVo.objToVo(room));
+        return ResultUtils.success(BeanUtil.copyProperties(room, RoomVo.class));
     }
 }

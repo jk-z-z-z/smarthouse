@@ -1,8 +1,6 @@
 package com.example.smarthouse.controller;
 
-import cn.hutool.core.util.StrUtil;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import cn.hutool.core.bean.BeanUtil;
 import com.example.smarthouse.common.BaseResponse;
 import com.example.smarthouse.common.DeleteRequest;
 import com.example.smarthouse.common.ResultUtils;
@@ -11,7 +9,6 @@ import com.example.smarthouse.exception.BusinessException;
 import com.example.smarthouse.exception.ErrorCode;
 import com.example.smarthouse.exception.ThrowUtils;
 import com.example.smarthouse.model.dto.house.HouseAddRequest;
-import com.example.smarthouse.model.dto.house.HouseQueryRequest;
 import com.example.smarthouse.model.dto.house.HouseUpdateRequest;
 import com.example.smarthouse.model.entity.House;
 import com.example.smarthouse.model.vo.house.HouseVo;
@@ -37,9 +34,6 @@ public class HouseController {
     /**
      * 创建房子
      *
-     * @param houseAddRequest
-     * @param request
-     * @return
      */
     @PostMapping("/add")
     public BaseResponse<Long> addHouse(@RequestBody HouseAddRequest houseAddRequest, HttpServletRequest request) {
@@ -57,8 +51,6 @@ public class HouseController {
     /**
      * 删除房子
      *
-     * @param deleteRequest
-     * @return
      */
     @PostMapping("/delete")
     public BaseResponse<Boolean> deleteHouse(@RequestBody DeleteRequest deleteRequest) {
@@ -72,8 +64,6 @@ public class HouseController {
     /**
      * 更新房子
      *
-     * @param houseUpdateRequest
-     * @return
      */
     @PostMapping("/update")
     public BaseResponse<Boolean> updateHouse(@RequestBody HouseUpdateRequest houseUpdateRequest) {
@@ -91,8 +81,6 @@ public class HouseController {
     /**
      * 根据 id 获取房子
      *
-     * @param id
-     * @return
      */
     @GetMapping("/get")
     public BaseResponse<HouseVo> getHouseById(long id) {
@@ -101,6 +89,37 @@ public class HouseController {
         }
         House house = houseService.getById(id);
         ThrowUtils.throwIf(house == null, ErrorCode.NOT_FOUND_ERROR);
-        return ResultUtils.success(HouseVo.objToVo(house));
+        return ResultUtils.success(BeanUtil.copyProperties(house, HouseVo.class));
+    }
+
+    /**
+     * 获取房子详情（包含房间和家具）
+     *
+     */
+    @GetMapping("/get/detail")
+    public BaseResponse<HouseVo> getHouseDetail(long id) {
+        if (id <= 0) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        HouseVo houseVo = houseService.getHouseDetail(id);
+        return ResultUtils.success(houseVo);
+    }
+
+    /**
+     * 获取当前用户的所有房子
+     *
+     */
+    @GetMapping("/my/list")
+    public BaseResponse<List<HouseVo>> listMyHouses(HttpServletRequest request) {
+        LoginUserVo loginUser = (LoginUserVo) request.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
+        if (loginUser == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+        long userId = loginUser.getId();
+        List<House> houseList = houseService.listHouseByUserId(userId);
+        List<HouseVo> houseVoList = houseList.stream()
+                .map(house -> BeanUtil.copyProperties(house, HouseVo.class))
+                .collect(Collectors.toList());
+        return ResultUtils.success(houseVoList);
     }
 }

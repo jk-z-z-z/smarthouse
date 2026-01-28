@@ -1,9 +1,6 @@
 package com.example.smarthouse.controller;
 
 import cn.hutool.core.bean.BeanUtil;
-import cn.hutool.core.util.StrUtil;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.smarthouse.common.BaseResponse;
 import com.example.smarthouse.common.DeleteRequest;
 import com.example.smarthouse.common.ResultUtils;
@@ -11,16 +8,14 @@ import com.example.smarthouse.exception.BusinessException;
 import com.example.smarthouse.exception.ErrorCode;
 import com.example.smarthouse.exception.ThrowUtils;
 import com.example.smarthouse.model.dto.furniture.FurnitureAddRequest;
-import com.example.smarthouse.model.dto.furniture.FurnitureQueryRequest;
 import com.example.smarthouse.model.dto.furniture.FurnitureUpdateRequest;
 import com.example.smarthouse.model.entity.Furniture;
 import com.example.smarthouse.model.vo.furniture.FurnitureVo;
 import com.example.smarthouse.service.FurnitureService;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 家具接口
@@ -35,26 +30,20 @@ public class FurnitureController {
     /**
      * 创建家具
      *
-     * @param furnitureAddRequest
-     * @return
      */
     @PostMapping("/add")
-    public BaseResponse<Long> addFurniture(@RequestBody FurnitureAddRequest furnitureAddRequest) {
+    public BaseResponse<Long> addFurniture(FurnitureAddRequest furnitureAddRequest,
+                                           @RequestPart(value = "file", required = false) MultipartFile file) {
         if (furnitureAddRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        Furniture furniture = new Furniture();
-        BeanUtil.copyProperties(furnitureAddRequest, furniture);
-        boolean result = furnitureService.save(furniture);
-        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
-        return ResultUtils.success(furniture.getId());
+        long furnitureId = furnitureService.addFurniture(furnitureAddRequest, file);
+        return ResultUtils.success(furnitureId);
     }
 
     /**
      * 删除家具
      *
-     * @param deleteRequest
-     * @return
      */
     @PostMapping("/delete")
     public BaseResponse<Boolean> deleteFurniture(@RequestBody DeleteRequest deleteRequest) {
@@ -68,8 +57,6 @@ public class FurnitureController {
     /**
      * 更新家具
      *
-     * @param furnitureUpdateRequest
-     * @return
      */
     @PostMapping("/update")
     public BaseResponse<Boolean> updateFurniture(@RequestBody FurnitureUpdateRequest furnitureUpdateRequest) {
@@ -86,8 +73,6 @@ public class FurnitureController {
     /**
      * 根据 id 获取家具
      *
-     * @param id
-     * @return
      */
     @GetMapping("/get")
     public BaseResponse<FurnitureVo> getFurnitureById(long id) {
@@ -96,6 +81,6 @@ public class FurnitureController {
         }
         Furniture furniture = furnitureService.getById(id);
         ThrowUtils.throwIf(furniture == null, ErrorCode.NOT_FOUND_ERROR);
-        return ResultUtils.success(FurnitureVo.objToVo(furniture));
+        return ResultUtils.success(BeanUtil.copyProperties(furniture, FurnitureVo.class));
     }
 }

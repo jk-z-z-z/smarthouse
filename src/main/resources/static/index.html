@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart House 测试控制台</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background-color: #f5f7fa; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1); }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        h1, h2, h3 { margin-top: 0; color: #303133; }
+        
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; color: #606266; }
+        input { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #dcdfe6; border-radius: 4px; }
+        button { background-color: #409eff; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; transition: 0.3s; }
+        button:hover { background-color: #66b1ff; }
+        button.danger { background-color: #f56c6c; }
+        button.danger:hover { background-color: #f78989; }
+        button.success { background-color: #67c23a; }
+        button.success:hover { background-color: #85ce61; }
+        
+        .grid { display: grid; grid-template-columns: 300px 1fr; gap: 20px; }
+        .house-list-item { padding: 10px; border-bottom: 1px solid #ebeef5; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .house-list-item:hover { background-color: #f5f7fa; }
+        .house-list-item.active { background-color: #ecf5ff; color: #409eff; }
+        
+        .room-card { border: 1px solid #e4e7ed; border-radius: 4px; padding: 15px; margin-bottom: 15px; }
+        .furniture-tag { display: inline-block; background-color: #f0f9eb; color: #67c23a; padding: 5px 10px; border-radius: 4px; margin-right: 10px; margin-bottom: 5px; border: 1px solid #e1f3d8; font-size: 12px; }
+        .furniture-tag .delete-btn { margin-left: 5px; cursor: pointer; color: #f56c6c; font-weight: bold; }
+        
+        .flex-row { display: flex; gap: 10px; align-items: flex-end; }
+        .flex-row .form-group { flex: 1; margin-bottom: 0; }
+        
+        .empty-text { color: #909399; text-align: center; padding: 20px; }
+        
+        [v-cloak] { display: none; }
+    </style>
+</head>
+<body>
+    <div id="app" class="container" v-cloak>
+        <div class="header">
+            <h1>🏡 Smart House 控制台</h1>
+            <div v-if="user">
+                <span>欢迎, {{ user.username }}</span>
+                <button @click="logout" style="margin-left: 10px;" class="danger">退出</button>
+            </div>
+        </div>
+
+        <!-- 登录/注册 -->
+        <div v-if="!user" class="card" style="max-width: 400px; margin: 50px auto;">
+            <div style="display: flex; justify-content: space-around; margin-bottom: 20px;">
+                <h2 :style="{color: isLogin ? '#409eff' : '#909399', cursor: 'pointer'}" @click="isLogin = true">登录</h2>
+                <h2 :style="{color: !isLogin ? '#409eff' : '#909399', cursor: 'pointer'}" @click="isLogin = false">注册</h2>
+            </div>
+            
+            <div class="form-group">
+                <label>用户名</label>
+                <input v-model="authForm.username" type="text" placeholder="请输入用户名">
+            </div>
+            <div class="form-group">
+                <label>密码</label>
+                <input v-model="authForm.userPassword" type="password" placeholder="请输入密码">
+            </div>
+            <div v-if="!isLogin" class="form-group">
+                <label>确认密码</label>
+                <input v-model="authForm.checkPassword" type="password" placeholder="请再次输入密码">
+            </div>
+            <button @click="handleAuth" style="width: 100%;">{{ isLogin ? '登录' : '注册' }}</button>
+        </div>
+
+        <!-- 主界面 -->
+        <div v-else class="grid">
+            <!-- 左侧：房子列表 -->
+            <div class="card">
+                <div class="header">
+                    <h3>我的房子</h3>
+                </div>
+                <div class="flex-row" style="margin-bottom: 15px;">
+                    <div class="form-group">
+                        <input v-model="newHouseName" placeholder="新房子名称">
+                    </div>
+                    <button @click="addHouse" class="success" :disabled="!newHouseName">添加</button>
+                </div>
+                
+                <div class="house-list">
+                    <div v-for="house in houseList" :key="house.id" 
+                         class="house-list-item" 
+                         :class="{active: currentHouse && currentHouse.id === house.id}"
+                         @click="selectHouse(house.id)">
+                        <span>{{ house.houseName }}</span>
+                        <button class="danger" style="padding: 2px 6px; font-size: 12px;" @click.stop="deleteHouse(house.id)">删除</button>
+                    </div>
+                    <div v-if="houseList.length === 0" class="empty-text">暂无房子</div>
+                </div>
+            </div>
+
+            <!-- 右侧：房子详情 -->
+            <div class="card">
+                <div v-if="currentHouse">
+                    <div class="header">
+                        <h2>{{ currentHouse.houseName }} <span style="font-size: 14px; color: #909399;">(ID: {{ currentHouse.id }})</span></h2>
+                        <button @click="refreshDetail" style="padding: 5px 10px;">刷新</button>
+                    </div>
+
+                    <!-- AI 分析区域 -->
+                    <div class="card" style="background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%); border: 1px solid #dcdfe6; margin-bottom: 20px;">
+                        <div class="header" style="margin-bottom: 10px;">
+                            <h3 style="margin: 0;">🤖 AI 智能识别助手</h3>
+                        </div>
+                        <div style="margin-bottom: 15px; color: #606266; font-size: 14px;">
+                            上传一张新家具图片，AI 将基于当前房子的所有家具信息，判断它最可能属于哪个房间。
+                        </div>
+                        <div class="flex-row">
+                            <input type="file" ref="aiFileInput" @change="handleAiFileChange" accept="image/*" style="flex: 2;">
+                            <button @click="analyzeImage" class="success" :disabled="!aiFile || aiAnalyzing">
+                                {{ aiAnalyzing ? '分析中...' : '开始分析' }}
+                            </button>
+                        </div>
+                        <div v-if="aiResult" style="margin-top: 15px; padding: 15px; background: white; border-radius: 4px; border: 1px solid #e4e7ed;">
+                            <strong>分析结果：</strong>
+                            <div v-if="aiResult.roomId" style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #eee;">
+                                <div style="margin-bottom: 5px;">🏠 <strong>匹配房间：</strong>{{ getRoomName(aiResult.roomId) }}</div>
+                                <div>🪑 <strong>匹配家具：</strong>{{ getFurnitureName(aiResult.roomId, aiResult.furnitureId) }}</div>
+                            </div>
+                            <div style="white-space: pre-wrap; font-family: inherit; color: #303133; line-height: 1.6;">
+                                <strong>AI 分析：</strong><br>
+                                {{ aiResult.analysis || aiResult }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 添加房间 -->
+                    <div class="card" style="background-color: #f9fafc; border: 1px dashed #dcdfe6;">
+                        <div class="flex-row">
+                            <div class="form-group">
+                                <input v-model="newRoomName" placeholder="输入新房间名称">
+                            </div>
+                            <button @click="addRoom" class="success" :disabled="!newRoomName">添加房间</button>
+                        </div>
+                    </div>
+
+                    <!-- 房间列表 -->
+                    <div v-for="room in currentHouse.roomList" :key="room.id" class="room-card">
+                        <div class="header" style="margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px;">
+                            <h3 style="margin: 0;">{{ room.roomName }}</h3>
+                            <button class="danger" style="padding: 4px 8px; font-size: 12px;" @click="deleteRoom(room.id)">删除房间</button>
+                        </div>
+
+                        <!-- 家具列表 -->
+                        <div style="margin: 10px 0;">
+                            <div v-if="room.furnitureList && room.furnitureList.length > 0">
+                                <span v-for="furniture in room.furnitureList" :key="furniture.id" class="furniture-tag">
+                                    {{ furniture.furnitureName }} ({{ furniture.width }}x{{ furniture.height }})
+                                    <span class="delete-btn" @click="deleteFurniture(furniture.id)">×</span>
+                                </span>
+                            </div>
+                            <div v-else class="empty-text" style="padding: 5px; font-size: 12px;">暂无家具</div>
+                        </div>
+
+                        <!-- 添加家具表单 -->
+                        <div class="flex-row" style="margin-top: 10px; background: #fff; padding: 5px;">
+                            <input v-model="room.newFurnitureName" placeholder="家具名称" style="flex: 2;">
+                            <input v-model="room.newFurnitureW" placeholder="宽" type="number" style="flex: 1;">
+                            <input v-model="room.newFurnitureH" placeholder="高" type="number" style="flex: 1;">
+                            <input type="file" ref="fileInputs" @change="handleFileChange($event, room)" style="flex: 2;">
+                            <button @click="addFurniture(room)" class="success" style="padding: 5px 10px; font-size: 12px;">添加家具</button>
+                        </div>
+                    </div>
+                    <div v-if="!currentHouse.roomList || currentHouse.roomList.length === 0" class="empty-text">该房子还没有房间</div>
+
+                </div>
+                <div v-else class="empty-text" style="padding: 100px 0;">
+                    请选择左侧房子查看详情
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, reactive, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                const user = ref(JSON.parse(sessionStorage.getItem('user') || 'null'));
+                const isLogin = ref(true);
+                const authForm = reactive({ username: '', userPassword: '', checkPassword: '' });
+                
+                const houseList = ref([]);
+                const currentHouse = ref(null);
+                const newHouseName = ref('');
+                const newRoomName = ref('');
+
+                // 自定义 transformResponse 处理 Long 类型精度丢失问题
+                axios.defaults.transformResponse = [function (data) {
+                    // 使用正则替换 JSON 字符串中的长整型数字为字符串
+                    // 匹配 : 后面跟着的数字（长度大于15位），将其包裹在双引号中
+                    if (typeof data === 'string') {
+                        try {
+                            // 匹配 key: value 格式中的 value 部分，如果是长数字则转换为字符串
+                            // 这是一个简单的正则处理，处理常见的 JSON 格式
+                            // 注意：这可能误伤某些不需要转换的长数字字符串，但在当前场景下是可接受的风险
+                            // 更稳健的方式是引入 json-bigint 库，但为了保持单文件简洁，这里使用正则替换
+                            const protectedJson = data.replace(/":\s*(\d{15,})/g, '": "$1"');
+                            return JSON.parse(protectedJson);
+                        } catch (e) {
+                            console.warn('JSON parse error with BigInt protection, falling back to native parse', e);
+                            return JSON.parse(data);
+                        }
+                    }
+                    return data;
+                }];
+
+                // 响应拦截器处理错误
+                axios.interceptors.response.use(response => {
+                    const res = response.data;
+                    if (res.code !== 0) {
+                        alert('Error: ' + res.message);
+                        return Promise.reject(res.message);
+                    }
+                    return res.data;
+                }, error => {
+                    alert('Request failed');
+                    return Promise.reject(error);
+                });
+
+                const handleAuth = async () => {
+                    if (isLogin.value) {
+                        const data = await axios.post('/user/login', {
+                            username: authForm.username,
+                            userPassword: authForm.userPassword
+                        });
+                        user.value = data;
+                        sessionStorage.setItem('user', JSON.stringify(data));
+                        fetchMyHouses();
+                    } else {
+                        await axios.post('/user/register', authForm);
+                        alert('注册成功，请登录');
+                        isLogin.value = true;
+                    }
+                };
+
+                const logout = () => {
+                    user.value = null;
+                    sessionStorage.removeItem('user');
+                    houseList.value = [];
+                    currentHouse.value = null;
+                };
+
+                const fetchMyHouses = async () => {
+                    if (!user.value) return;
+                    houseList.value = await axios.get('/house/my/list');
+                };
+
+                const addHouse = async () => {
+                    await axios.post('/house/add', { houseName: newHouseName.value });
+                    newHouseName.value = '';
+                    fetchMyHouses();
+                };
+
+                const deleteHouse = async (id) => {
+                    if(!confirm('确定删除该房子吗？')) return;
+                    await axios.post('/house/delete', { id });
+                    if (currentHouse.value && currentHouse.value.id === id) {
+                        currentHouse.value = null;
+                    }
+                    fetchMyHouses();
+                };
+
+                const selectHouse = async (id) => {
+                    const detail = await axios.get('/house/get/detail?id=' + id);
+                    // 为每个房间初始化添加家具的表单数据
+                    if(detail.roomList) {
+                        detail.roomList.forEach(room => {
+                            room.newFurnitureName = '';
+                            room.newFurnitureW = 100;
+                            room.newFurnitureH = 100;
+                        });
+                    }
+                    currentHouse.value = detail;
+                };
+
+                const refreshDetail = () => {
+                    if (currentHouse.value) {
+                        selectHouse(currentHouse.value.id);
+                    }
+                };
+
+                const addRoom = async () => {
+                    if (!currentHouse.value) return;
+                    await axios.post('/room/add', {
+                        roomName: newRoomName.value,
+                        houseId: currentHouse.value.id
+                    });
+                    newRoomName.value = '';
+                    refreshDetail();
+                };
+
+                const deleteRoom = async (id) => {
+                    if(!confirm('确定删除该房间吗？')) return;
+                    await axios.post('/room/delete', { id });
+                    refreshDetail();
+                };
+
+                const addFurniture = async (room) => {
+                    if (!room.newFurnitureName) return;
+                    if (!room.id) {
+                        alert('房间ID缺失，无法添加家具');
+                        return;
+                    }
+                    
+                    const formData = new FormData();
+                    formData.append('furnitureName', room.newFurnitureName);
+                    formData.append('roomId', room.id);
+                    formData.append('width', room.newFurnitureW || 100);
+                    formData.append('height', room.newFurnitureH || 100);
+                    formData.append('positionX', 0);
+                    formData.append('positionY', 0);
+                    
+                    if (room.selectedFile) {
+                        formData.append('file', room.selectedFile);
+                    }
+
+                    await axios.post('/furniture/add', formData);
+                    
+                    // 清理文件选择
+                    room.selectedFile = null;
+                    const fileInput = document.querySelector(`input[type=file]`); // 简单处理，实际应精确定位
+                    if(fileInput) fileInput.value = '';
+                    
+                    refreshDetail();
+                };
+
+                const handleFileChange = (event, room) => {
+                    room.selectedFile = event.target.files[0];
+                };
+
+                const deleteFurniture = async (id) => {
+                    if(!confirm('确定删除该家具吗？')) return;
+                    await axios.post('/furniture/delete', { id });
+                    refreshDetail();
+                };
+
+                // AI 功能逻辑
+                const aiFile = ref(null);
+                const aiResult = ref('');
+                const aiAnalyzing = ref(false);
+
+                const getRoomName = (roomId) => {
+                    if (!currentHouse.value || !currentHouse.value.roomList) return roomId;
+                    const room = currentHouse.value.roomList.find(r => r.id == roomId);
+                    return room ? room.roomName : roomId;
+                };
+
+                const getFurnitureName = (roomId, furnitureId) => {
+                     if (!currentHouse.value || !currentHouse.value.roomList) return furnitureId;
+                     const room = currentHouse.value.roomList.find(r => r.id == roomId);
+                     if (!room || !room.furnitureList) return furnitureId;
+                     const fur = room.furnitureList.find(f => f.id == furnitureId);
+                     return fur ? fur.furnitureName : furnitureId;
+                };
+
+                const handleAiFileChange = (event) => {
+                    aiFile.value = event.target.files[0];
+                };
+
+                const analyzeImage = async () => {
+                    if (!aiFile.value || !currentHouse.value) return;
+                    
+                    aiAnalyzing.value = true;
+                    aiResult.value = '';
+                    
+                    const formData = new FormData();
+                    formData.append('houseId', currentHouse.value.id);
+                    formData.append('file', aiFile.value);
+                    
+                    try {
+                        const res = await axios.post('/ai/analyze', formData);
+                        aiResult.value = res;
+                    } catch (e) {
+                        aiResult.value = '分析失败: ' + e;
+                    } finally {
+                        aiAnalyzing.value = false;
+                    }
+                };
+
+                onMounted(() => {
+                    if (user.value) {
+                        fetchMyHouses();
+                    }
+                });
+
+                return {
+                    user, isLogin, authForm, houseList, currentHouse,
+                    newHouseName, newRoomName,
+                    handleAuth, logout, addHouse, deleteHouse, selectHouse,
+                    addRoom, deleteRoom, addFurniture, deleteFurniture, refreshDetail, handleFileChange,
+                    aiFile, aiResult, aiAnalyzing, handleAiFileChange, analyzeImage,
+                    getRoomName, getFurnitureName
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
